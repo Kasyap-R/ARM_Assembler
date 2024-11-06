@@ -15,16 +15,43 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(SOURCES
     src/main.cpp
 )
-add_executable(assembler ${SOURCES})
+
+add_executable(assembler ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCES})
 
 # Include header files
 target_include_directories(assembler PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-
-
 # Add the Clang-Tidy linter and add an custom target so you can run "make lint"
-set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*")
+set(assembler_tests PROPERTIES CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*")
 add_custom_target(lint
     COMMAND clang-tidy -p ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCES}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
+
+# Download and include Google Test
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE  # Set this to TRUE to avoid the warning
+)
+FetchContent_MakeAvailable(googletest)
+
+# Enable Testing
+enable_testing()
+
+# Add test source files
+set(TEST_SOURCES
+    tests/sample_test.cpp
+)
+
+# Add 'assembler_tests' executable and link it to GoogleTest
+add_executable(assembler_tests ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_SOURCES})
+target_link_libraries(assembler_tests GTest::gtest_main)
+
+# Set Clang-Tidy to lint the tests as well
+set(assembler_tests PROPERTIES CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*")
+
+# Allow CMake's test runner to discover tests using GoogleTests CMake module
+include(GoogleTest)
+gtest_discover_tests(assembler_tests)
