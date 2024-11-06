@@ -16,17 +16,14 @@ set(SOURCES
     src/main.cpp
 )
 
+# Create the assembler executable
 add_executable(assembler ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCES})
 
 # Include header files
 target_include_directories(assembler PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Add the Clang-Tidy linter and add an custom target so you can run "make lint"
-set(assembler_tests PROPERTIES CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*")
-add_custom_target(lint
-    COMMAND clang-tidy -p ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCES}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-)
+# Ensure Clang-Tidy lints the assembler for modern practices, core guidelines, performance, and readability
+set_target_properties(assembler PROPERTIES CXX_CLANG_TIDY "clang-tidy;-checks=cppcoreguidelines-*,modernize-*,performance-*,readability-*")
 
 # Download and include Google Test
 include(FetchContent)
@@ -49,8 +46,8 @@ set(TEST_SOURCES
 add_executable(assembler_tests ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_SOURCES})
 target_link_libraries(assembler_tests GTest::gtest_main)
 
-# Set Clang-Tidy to lint the tests as well
-set(assembler_tests PROPERTIES CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*")
+# Ensure Clang-Tidy lints the assembler_tests for modern practices, core guidelines, performance, and readability
+set_target_properties(assembler_tests PROPERTIES CXX_CLANG_TIDY "clang-tidy;-checks=cppcoreguidelines-*,modernize-*,performance-*,readability-*")
 
 # Allow CMake's test runner to discover tests using GoogleTests CMake module
 include(GoogleTest)
