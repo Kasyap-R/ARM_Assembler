@@ -1,0 +1,30 @@
+# CMake version
+cmake_minimum_required(VERSION 3.10)
+
+# Project Name
+project(Assembler)
+
+# Set C++ version and enforce it
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Create compile_commands.json for Clang-Tidy
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Add source files
+set(SOURCES
+    src/main.cpp
+)
+add_executable(assembler ${SOURCES})
+
+# Include header files
+target_include_directories(assembler PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+
+
+# Add the Clang-Tidy linter and add an custom target so you can run "make lint"
+set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*")
+add_custom_target(lint
+    COMMAND clang-tidy -p ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCES}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
