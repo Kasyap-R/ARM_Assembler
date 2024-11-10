@@ -24,6 +24,9 @@ class Lexer {
     static auto gatherArguments(std::string &line, size_t argStartIndex,
                                 int lineNum) -> std::vector<std::string>;
 
+    static std::string trimWhitespace(const std::string &line);
+    static std::string trimComments(const std::string &line);
+
   public:
     Lexer(std::string &assembly);
     std::vector<Token> tokenize();

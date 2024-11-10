@@ -256,3 +256,29 @@ TEST(LexerTest, CommentIgnored) {
             << "Didn't match at index: " + std::to_string(i) << "\n";
     }
 }
+
+TEST(LexerTest, WhitespaceTrimmed) {
+    std::string test_input = "\t add x1, x2, #0b101   ";
+    Mnemonic mnemonic = Mnemonic::ADD;
+
+    Register reg1 = Register::X1;
+    Register reg2 = Register::X2;
+
+    Token token1 = Token::createMnemonic(mnemonic);
+    Token token2 = Token::createRegister(reg1);
+    Token token3 = Token::createRegister(reg2);
+    Token token4 = Token::createImmediate(Immediate{5}); // 0b101 in binary
+
+    std::vector<Token> expected = {token1, token2, token3, token4};
+
+    Lexer lexer(test_input);
+    std::vector<Token> lexerOutput = lexer.tokenize();
+
+    ASSERT_EQ(expected.size(), lexerOutput.size())
+        << "Length of lexer token list and expected token list don't match\n";
+
+    for (size_t i = 0; i < expected.size(); i++) {
+        EXPECT_EQ(expected[i], lexerOutput[i])
+            << "Didn't match at index: " + std::to_string(i) << "\n";
+    }
+}

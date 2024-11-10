@@ -1,6 +1,7 @@
 #include "lexer.h"
 #include "token.h"
 #include <cctype>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -272,8 +273,6 @@ auto Lexer::processDirective(const std::string &directive, int lineNum)
         return std::vector{Token::createDirective(
             Lexer::stringToDirective.at(directiveLiteral))};
     }
-
-    throw std::runtime_error("Directive parsing not fully implemented");
 }
 
 auto Lexer::trimWhitespace(const std::string &line) -> std::string {
