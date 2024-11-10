@@ -11,19 +11,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Create compile_commands.json for Clang-Tidy
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Add source files
-set(SOURCES
-    src/main.cpp
-)
+# Add all files to SOURCES variable 
+file(GLOB_RECURSE SOURCES src/*.cpp)
+
+# Add source files to a library
+add_library(assembler_core ${SOURCES})
+target_include_directories(assembler_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+# Ensure Clang-Tidy lints the assembler_core for modern practices, core guidelines, performance, and readability
+set_target_properties(assembler_core PROPERTIES CXX_CLANG_TIDY "clang-tidy;-checks=cppcoreguidelines-*,modernize-*,performance-*,readability-*")
 
 # Create the assembler executable
-add_executable(assembler ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCES})
-
-# Include header files
-target_include_directories(assembler PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-# Ensure Clang-Tidy lints the assembler for modern practices, core guidelines, performance, and readability
-set_target_properties(assembler PROPERTIES CXX_CLANG_TIDY "clang-tidy;-checks=cppcoreguidelines-*,modernize-*,performance-*,readability-*")
+add_executable(assembler src/main.cpp)
+target_link_libraries(assembler assembler_core)
 
 # Download and include Google Test
 include(FetchContent)
@@ -38,13 +38,14 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 # Add test source files
-set(TEST_SOURCES
-    tests/sample_test.cpp
-)
+file(GLOB_RECURSE TEST_SOURCES tests/*.cpp)
 
 # Add 'assembler_tests' executable and link it to GoogleTest
-add_executable(assembler_tests ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_SOURCES})
-target_link_libraries(assembler_tests GTest::gtest_main)
+add_executable(assembler_tests ${TEST_SOURCES} )
+target_link_libraries(assembler_tests GTest::gtest_main assembler_core)
+
+# Include source header files in assembler_tests
+target_include_directories(assembler_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Ensure Clang-Tidy lints the assembler_tests for modern practices, core guidelines, performance, and readability
 set_target_properties(assembler_tests PROPERTIES CXX_CLANG_TIDY "clang-tidy;-checks=cppcoreguidelines-*,modernize-*,performance-*,readability-*")
@@ -52,3 +53,7 @@ set_target_properties(assembler_tests PROPERTIES CXX_CLANG_TIDY "clang-tidy;-che
 # Allow CMake's test runner to discover tests using GoogleTests CMake module
 include(GoogleTest)
 gtest_discover_tests(assembler_tests)
+
+# Max out warnings
+target_compile_options(assembler PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_compile_options(assembler_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
