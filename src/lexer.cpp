@@ -1,94 +1,18 @@
 #include "lexer.h"
+#include "lexer_constants.h"
 #include "token.h"
+
 #include <cctype>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
-const std::unordered_map<std::string, Mnemonic> Lexer::stringToMnemonic = {
-    {"add", Mnemonic::ADD}, {"sub", Mnemonic::SUB},   {"mov", Mnemonic::MOV},
-    {"j", Mnemonic::JUMP},  {"jump", Mnemonic::JUMP},
-};
-
-const std::unordered_map<std::string, Directive> Lexer::stringToDirective = {
-    {"global", Directive::GLOBAL},
-    {"data", Directive::DATA},
-    {"text", Directive::TEXT}};
-
-const std::unordered_map<std::string, Register> Lexer::stringToRegister =
-    { // X registers
-        {"x1", Register::X1},
-        {"x2", Register::X2},
-        {"x3", Register::X3},
-        {"x4", Register::X4},
-        {"x5", Register::X5},
-        {"x6", Register::X6},
-        {"x7", Register::X7},
-        {"x8", Register::X8},
-        {"x9", Register::X9},
-        {"x10", Register::X10},
-        {"x11", Register::X11},
-        {"x12", Register::X12},
-        {"x13", Register::X13},
-        {"x14", Register::X14},
-        {"x15", Register::X15},
-        {"x16", Register::X16},
-        {"x17", Register::X17},
-        {"x18", Register::X18},
-        {"x19", Register::X19},
-        {"x20", Register::X20},
-        {"x21", Register::X21},
-        {"x22", Register::X22},
-        {"x23", Register::X23},
-        {"x24", Register::X24},
-        {"x25", Register::X25},
-        {"x26", Register::X26},
-        {"x27", Register::X27},
-        {"x28", Register::X28},
-        {"x29", Register::X29},
-        {"x30", Register::X30},
-        {"x31", Register::X31},
-        {"x32", Register::X32},
-
-        // W registers
-        {"w1", Register::W1},
-        {"w2", Register::W2},
-        {"w3", Register::W3},
-        {"w4", Register::W4},
-        {"w5", Register::W5},
-        {"w6", Register::W6},
-        {"w7", Register::W7},
-        {"w8", Register::W8},
-        {"w9", Register::W9},
-        {"w10", Register::W10},
-        {"w11", Register::W11},
-        {"w12", Register::W12},
-        {"w13", Register::W13},
-        {"w14", Register::W14},
-        {"w15", Register::W15},
-        {"w16", Register::W16},
-        {"w17", Register::W17},
-        {"w18", Register::W18},
-        {"w19", Register::W19},
-        {"w20", Register::W20},
-        {"w21", Register::W21},
-        {"w22", Register::W22},
-        {"w23", Register::W23},
-        {"w24", Register::W24},
-        {"w25", Register::W25},
-        {"w26", Register::W26},
-        {"w27", Register::W27},
-        {"w28", Register::W28},
-        {"w29", Register::W29},
-        {"w30", Register::W30},
-        {"w31", Register::W31},
-        {"w32", Register::W32}};
-
-Lexer::Lexer(std::string &assembly) : assembly{assembly} {}
-
-auto Lexer::tokenize() -> std::vector<Token> {
-    std::istringstream stream(this->assembly);
+auto Lexer::tokenize(const std::string &assembly,
+                     std::unordered_map<std::string, Label> &labels)
+    -> std::vector<Token> {
+    std::istringstream stream(assembly);
     std::string line;
     std::vector<Token> tokens;
     int lineNum = 0;
@@ -96,8 +20,7 @@ auto Lexer::tokenize() -> std::vector<Token> {
     while (std::getline(stream, line)) {
         // Process line by line
         lineNum++;
-        line = Lexer::trimWhitespace(line);
-        line = Lexer::trimComments(line);
+        line = Lexer::trimComments(Lexer::trimWhitespace(line));
 
         if (line.empty()) {
             continue;
@@ -109,7 +32,7 @@ auto Lexer::tokenize() -> std::vector<Token> {
             tokens.insert(tokens.end(), directiveTokens.begin(),
                           directiveTokens.end());
         } else if (line.back() == ':') {
-            tokens.push_back(this->processLabel(line, lineNum));
+            tokens.push_back(Lexer::processLabel(line, lineNum, labels));
         } else {
             // TODO: Check if the line contains a label for macros
 
@@ -126,7 +49,8 @@ auto Lexer::tokenize() -> std::vector<Token> {
                 Lexer::gatherArguments(line, argStartIndex, lineNum);
 
             for (const auto &argument : arguments) {
-                tokens.push_back(processArgument(argument, lineNum));
+                tokens.push_back(
+                    Lexer::processArgument(argument, lineNum, labels));
             }
         }
     }
@@ -134,9 +58,11 @@ auto Lexer::tokenize() -> std::vector<Token> {
     return tokens;
 }
 
-auto Lexer::processArgument(const std::string &argument, int lineNum) -> Token {
-    if (this->labels.find(argument) != this->labels.end()) {
-        return Token::createLabel(this->labels[argument]);
+auto Lexer::processArgument(
+    const std::string &argument, const int lineNum,
+    const std::unordered_map<std::string, Label> &labels) -> Token {
+    if (Lexer::isValidKey(argument, labels)) {
+        return Token::createLabel(labels.at(argument));
     }
     if (argument[0] == '#') {
         return Lexer::processImmediate(argument, lineNum);
@@ -148,7 +74,8 @@ auto Lexer::processArgument(const std::string &argument, int lineNum) -> Token {
                              std::to_string(lineNum) + ": " + argument);
 }
 
-auto Lexer::processMnemonic(const std::string &line, int lineNum) -> Token {
+auto Lexer::processMnemonic(const std::string &line, const int lineNum)
+    -> Token {
     size_t firstWhitespaceIdx = line.find(' ');
 
     if (firstWhitespaceIdx == std::string::npos) {
@@ -157,15 +84,14 @@ auto Lexer::processMnemonic(const std::string &line, int lineNum) -> Token {
     }
 
     std::string mnemonic = line.substr(0, firstWhitespaceIdx);
-    if (Lexer::stringToMnemonic.find(mnemonic) ==
-        Lexer::stringToMnemonic.end()) {
+    if (!Lexer::isValidKey(mnemonic, stringToMnemonic)) {
         throw std::runtime_error("Expected mnemonic as first string at line: " +
                                  std::to_string(lineNum));
     }
-    return Token::createMnemonic(Lexer::stringToMnemonic.at(mnemonic));
+    return Token::createMnemonic(stringToMnemonic.at(mnemonic));
 }
 
-auto Lexer::gatherArguments(std::string &line, size_t argStartIndex,
+auto Lexer::gatherArguments(std::string &line, const size_t argStartIndex,
                             int lineNum) -> std::vector<std::string> {
     std::vector<std::string> arguments;
     std::string currentArgument;
@@ -190,7 +116,9 @@ auto Lexer::gatherArguments(std::string &line, size_t argStartIndex,
     return arguments;
 }
 
-auto Lexer::processLabel(const std::string &line, int lineNum) -> Token {
+auto Lexer::processLabel(const std::string &line, const int lineNum,
+                         std::unordered_map<std::string, Label> &labels)
+    -> Token {
     // Verify that the label starts with either an underscore or alphabetic
     // character
     if (line[0] != '_' && (std::isalpha(line[0]) == 0)) {
@@ -216,11 +144,11 @@ auto Lexer::processLabel(const std::string &line, int lineNum) -> Token {
     }
     std::string trimmedLine = line.substr(0, line.size() - 1);
     Label label{trimmedLine};
-    this->labels.insert({trimmedLine, label});
+    labels.insert({trimmedLine, label});
     return Token::createLabel(label);
 }
 
-auto Lexer::processImmediate(const std::string &immediate, int lineNum)
+auto Lexer::processImmediate(const std::string &immediate, const int lineNum)
     -> Token {
     // First we must determine if this number is in decimal, hex, or binary
     // Remember first char in the immediate is a hashtag
@@ -244,13 +172,13 @@ auto Lexer::processImmediate(const std::string &immediate, int lineNum)
     return Token::createImmediate(Immediate{immediateVal});
 }
 
-auto Lexer::processRegister(const std::string &argument, int lineNum) -> Token {
-    if (Lexer::stringToRegister.find(argument) ==
-        Lexer::stringToRegister.end()) {
+auto Lexer::processRegister(const std::string &argument, const int lineNum)
+    -> Token {
+    if (!Lexer::isValidKey(argument, stringToRegister)) {
         throw std::runtime_error("Invalid register on line " +
                                  std::to_string(lineNum) + ": " + argument);
     }
-    return Token::createRegister(Lexer::stringToRegister.at(argument));
+    return Token::createRegister(stringToRegister.at(argument));
 }
 
 // TODO: Add directive processing. Issue is that arguments for directives don't
@@ -262,15 +190,14 @@ auto Lexer::processDirective(const std::string &directive, int lineNum)
         1, firstWhitespaceIdx == std::string::npos ? std::string::npos
                                                    : firstWhitespaceIdx - 1);
     // Ensure the directive is valid
-    if (Lexer::stringToDirective.find(directiveLiteral) ==
-        Lexer::stringToDirective.end()) {
+    if (!Lexer::isValidKey(directiveLiteral, stringToDirective)) {
         throw std::runtime_error("Invalid directive at line " +
                                  std::to_string(lineNum) + ": " + directive);
     }
 
     if (firstWhitespaceIdx == std::string::npos) {
-        return std::vector{Token::createDirective(
-            Lexer::stringToDirective.at(directiveLiteral))};
+        return std::vector{
+            Token::createDirective(stringToDirective.at(directiveLiteral))};
     }
 
     throw std::runtime_error("Directive parsing not fully implemented");
@@ -290,23 +217,19 @@ auto Lexer::trimWhitespace(const std::string &line) -> std::string {
 auto Lexer::trimComments(const std::string &line) -> std::string {
     size_t end = std::string::npos;
     for (size_t i = 0; i < line.size(); i++) {
-        if (line[i] == ';') {
-            end = i;
-            break;
-        }
-        if ((i + 1) < line.size() && line.substr(i, 2) == "//") {
+        if (line[i] == ';' ||
+            ((i + 1) < line.size() && line.substr(i, 2) == "//")) {
             end = i;
             break;
         }
     }
-
     if (end == 0) {
         return "";
     }
-
-    if (end == std::string::npos) {
-        return line;
-    }
-
     return line.substr(0, end);
+}
+
+template <typename MapType>
+auto Lexer::isValidKey(const std::string &key, const MapType &map) -> bool {
+    return map.find(key) != map.end();
 }

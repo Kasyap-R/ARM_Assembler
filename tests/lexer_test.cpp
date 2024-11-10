@@ -1,3 +1,4 @@
+#include "assembler_state.h"
 #include "lexer.h"
 #include "token.h"
 #include "gtest/gtest.h"
@@ -20,9 +21,8 @@ TEST(LexerTest, ThreeArgMnemonic) {
 
     std::vector<Token> expected = {token1, token2, token3, token4};
 
-    Lexer lexer(test_input);
-    std::vector<Token> lexerOutput = lexer.tokenize();
-
+    AssemblerState state;
+    std::vector<Token> lexerOutput = Lexer::tokenize(test_input, state.labels);
     ASSERT_EQ(expected.size(), lexerOutput.size())
         << "Length of lexer token list and expected token list don't match\n";
 
@@ -49,10 +49,8 @@ TEST(LexerTest, MultipleInstructions) {
     Token token7 = Token::createRegister(reg2);
     std::vector<Token> expected = {token1, token2, token3, token4,
                                    token5, token6, token7};
-
-    Lexer lexer(test_input);
-    std::vector<Token> lexerOutput = lexer.tokenize();
-
+    AssemblerState state;
+    std::vector<Token> lexerOutput = Lexer::tokenize(test_input, state.labels);
     ASSERT_EQ(expected.size(), lexerOutput.size())
         << "Length of lexer token list and expected token list don't match\n";
 
@@ -72,9 +70,8 @@ TEST(LexerTest, SimpleLabels) {
 
     std::vector<Token> expected = {token1, token2, token1};
 
-    Lexer lexer(test_input);
-    std::vector<Token> lexerOutput = lexer.tokenize();
-
+    AssemblerState state;
+    std::vector<Token> lexerOutput = Lexer::tokenize(test_input, state.labels);
     ASSERT_EQ(expected.size(), lexerOutput.size())
         << "Length of lexer token list and expected token list don't match\n";
 
@@ -97,9 +94,8 @@ TEST(LexerTest, SimpleImmediate) {
 
     std::vector<Token> expected = {token1, token2, token3, token4};
 
-    Lexer lexer(test_input);
-    std::vector<Token> lexerOutput = lexer.tokenize();
-
+    AssemblerState state;
+    std::vector<Token> lexerOutput = Lexer::tokenize(test_input, state.labels);
     ASSERT_EQ(expected.size(), lexerOutput.size())
         << "Length of lexer token list and expected token list don't match\n";
 
@@ -122,9 +118,8 @@ TEST(LexerTest, BinaryImmediate) {
     Token token4 = Token::createImmediate(Immediate{5}); // 0b101 in binary
 
     std::vector<Token> expected = {token1, token2, token3, token4};
-
-    Lexer lexer(test_input);
-    std::vector<Token> lexerOutput = lexer.tokenize();
+    AssemblerState state;
+    std::vector<Token> lexerOutput = Lexer::tokenize(test_input, state.labels);
 
     ASSERT_EQ(expected.size(), lexerOutput.size())
         << "Length of lexer token list and expected token list don't match\n";
@@ -150,8 +145,8 @@ TEST(LexerTest, SubtractionInstruction) {
 
     std::vector<Token> expected = {token1, token2, token3, token4};
 
-    Lexer lexer(test_input);
-    std::vector<Token> lexerOutput = lexer.tokenize();
+    AssemblerState state;
+    std::vector<Token> lexerOutput = Lexer::tokenize(test_input, state.labels);
 
     ASSERT_EQ(expected.size(), lexerOutput.size())
         << "Length of lexer token list and expected token list don't match\n";
@@ -183,9 +178,8 @@ TEST(LexerTest, MultipleLabels) {
     std::vector<Token> expected = {token1, token2, token3,
                                    token4, token5, token6};
 
-    Lexer lexer(test_input);
-    std::vector<Token> lexerOutput = lexer.tokenize();
-
+    AssemblerState state;
+    std::vector<Token> lexerOutput = Lexer::tokenize(test_input, state.labels);
     ASSERT_EQ(expected.size(), lexerOutput.size())
         << "Length of lexer token list and expected token list don't match\n";
 
@@ -197,10 +191,10 @@ TEST(LexerTest, MultipleLabels) {
 
 TEST(LexerTest, InvalidImmediate) {
     std::string test_input = "add x1, x2, #invalid";
+    AssemblerState state;
 
-    Lexer lexer(test_input);
-
-    EXPECT_THROW({ lexer.tokenize(); }, std::runtime_error);
+    EXPECT_THROW(
+        { Lexer::tokenize(test_input, state.labels); }, std::runtime_error);
 }
 
 TEST(LexerTest, InlineCommentIgnored) {
@@ -217,9 +211,8 @@ TEST(LexerTest, InlineCommentIgnored) {
     Token token4 = Token::createRegister(reg3);
 
     std::vector<Token> expected = {token1, token2, token3, token4};
-
-    Lexer lexer(test_input);
-    std::vector<Token> lexerOutput = lexer.tokenize();
+    AssemblerState state;
+    std::vector<Token> lexerOutput = Lexer::tokenize(test_input, state.labels);
 
     ASSERT_EQ(expected.size(), lexerOutput.size())
         << "Length of lexer token list and expected token list don't match\n";
@@ -245,8 +238,8 @@ TEST(LexerTest, CommentIgnored) {
 
     std::vector<Token> expected = {token1, token2, token3, token4};
 
-    Lexer lexer(test_input);
-    std::vector<Token> lexerOutput = lexer.tokenize();
+    AssemblerState state;
+    std::vector<Token> lexerOutput = Lexer::tokenize(test_input, state.labels);
 
     ASSERT_EQ(expected.size(), lexerOutput.size())
         << "Length of lexer token list and expected token list don't match\n";
@@ -270,9 +263,8 @@ TEST(LexerTest, WhitespaceTrimmed) {
     Token token4 = Token::createImmediate(Immediate{5}); // 0b101 in binary
 
     std::vector<Token> expected = {token1, token2, token3, token4};
-
-    Lexer lexer(test_input);
-    std::vector<Token> lexerOutput = lexer.tokenize();
+    AssemblerState state;
+    std::vector<Token> lexerOutput = Lexer::tokenize(test_input, state.labels);
 
     ASSERT_EQ(expected.size(), lexerOutput.size())
         << "Length of lexer token list and expected token list don't match\n";
