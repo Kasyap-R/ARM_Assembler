@@ -3,10 +3,14 @@
 #include "token.h"
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class Lexer {
+
   private:
+    std::unordered_map<std::string, Label> stringToLabels;
+
     static auto processMnemonic(const std::string &line, const int lineNum)
         -> Token;
 
@@ -29,17 +33,18 @@ class Lexer {
     template <typename MapType>
     static auto isValidKey(const std::string &key, const MapType &map) -> bool;
 
-    static auto processLabel(const std::string &line, const int lineNum,
-                             std::unordered_map<std::string, Label> &labels)
+    auto processLabel(const std::string &line, const int lineNum) -> Token;
+
+    auto processArgument(const std::string &argument, const int lineNum)
         -> Token;
 
-    static auto
-    processArgument(const std::string &argument, const int lineNum,
-                    const std::unordered_map<std::string, Label> &labels)
-        -> Token;
+    auto processLine(std::string &line, const int lineNum)
+        -> std::vector<Token>;
+
+    void populateLabelsSet(std::unordered_set<Label> &labels);
 
   public:
-    static auto tokenize(const std::string &assembly,
-                         std::unordered_map<std::string, Label> &labels)
-        -> std::vector<Token>;
+    Lexer();
+    auto tokenize(const std::string &assembly,
+                  std::unordered_set<Label> &labels) -> std::vector<Token>;
 };

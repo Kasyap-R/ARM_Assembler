@@ -7,11 +7,13 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
+Lexer::Lexer() : stringToLabels({}) {};
+
 auto Lexer::tokenize(const std::string &assembly,
-                     std::unordered_map<std::string, Label> &labels)
-    -> std::vector<Token> {
+                     std::unordered_set<Label> &labels) -> std::vector<Token> {
     std::istringstream stream(assembly);
     std::string line;
     std::vector<Token> tokens;
@@ -20,49 +22,62 @@ auto Lexer::tokenize(const std::string &assembly,
     while (std::getline(stream, line)) {
         // Process line by line
         lineNum++;
-        line = Lexer::trimComments(Lexer::trimWhitespace(line));
 
-        if (line.empty()) {
-            continue;
+        std::vector<Token> tokensInLine = Lexer::processLine(line, lineNum);
+
+        tokens.insert(tokens.end(), tokensInLine.begin(), tokensInLine.end());
+
+        if (!tokens.empty() && stream.peek() != EOF) {
+            tokens.push_back(Token::createNewline());
         }
+    }
 
-        if (line[0] == '.') {
-            std::vector directiveTokens =
-                Lexer::processDirective(line, lineNum);
-            tokens.insert(tokens.end(), directiveTokens.begin(),
-                          directiveTokens.end());
-        } else if (line.back() == ':') {
-            tokens.push_back(Lexer::processLabel(line, lineNum, labels));
-        } else {
-            // TODO: Check if the line contains a label for macros
+    this->populateLabelsSet(labels);
 
-            // process mnemonic
-            tokens.push_back(Lexer::processMnemonic(line, lineNum));
+    return tokens;
+}
 
-            // Then process arguments and turn them into the appropriate tokens
-            size_t argStartIndex = line.find(' ') + 1;
-            if (argStartIndex >= line.size()) {
-                throw std::runtime_error("Expected arguments at line " +
-                                         std::to_string(lineNum));
-            }
-            std::vector<std::string> arguments =
-                Lexer::gatherArguments(line, argStartIndex, lineNum);
+auto Lexer::processLine(std::string &line, const int lineNum)
+    -> std::vector<Token> {
 
-            for (const auto &argument : arguments) {
-                tokens.push_back(
-                    Lexer::processArgument(argument, lineNum, labels));
-            }
+    std::vector<Token> tokens = {};
+    line = Lexer::trimComments(Lexer::trimWhitespace(line));
+
+    if (line.empty()) {
+        return tokens;
+    }
+    if (line[0] == '.') {
+        return Lexer::processDirective(line, lineNum);
+    }
+    if (line.back() == ':') {
+        tokens.push_back(Lexer::processLabel(line, lineNum));
+    } else {
+        // TODO: Check if the line contains a label for macros
+
+        // process mnemonic
+        tokens.push_back(Lexer::processMnemonic(line, lineNum));
+
+        // Then process arguments and turn them into the appropriate tokens
+        size_t argStartIndex = line.find(' ') + 1;
+        if (argStartIndex >= line.size()) {
+            throw std::runtime_error("Expected arguments at line " +
+                                     std::to_string(lineNum));
+        }
+        std::vector<std::string> arguments =
+            Lexer::gatherArguments(line, argStartIndex, lineNum);
+
+        for (const auto &argument : arguments) {
+            tokens.push_back(this->processArgument(argument, lineNum));
         }
     }
 
     return tokens;
 }
 
-auto Lexer::processArgument(
-    const std::string &argument, const int lineNum,
-    const std::unordered_map<std::string, Label> &labels) -> Token {
-    if (Lexer::isValidKey(argument, labels)) {
-        return Token::createLabel(labels.at(argument));
+auto Lexer::processArgument(const std::string &argument, const int lineNum)
+    -> Token {
+    if (Lexer::isValidKey(argument, this->stringToLabels)) {
+        return Token::createLabel(this->stringToLabels.at(argument));
     }
     if (argument[0] == '#') {
         return Lexer::processImmediate(argument, lineNum);
@@ -116,9 +131,7 @@ auto Lexer::gatherArguments(std::string &line, const size_t argStartIndex,
     return arguments;
 }
 
-auto Lexer::processLabel(const std::string &line, const int lineNum,
-                         std::unordered_map<std::string, Label> &labels)
-    -> Token {
+auto Lexer::processLabel(const std::string &line, const int lineNum) -> Token {
     // Verify that the label starts with either an underscore or alphabetic
     // character
     if (line[0] != '_' && (std::isalpha(line[0]) == 0)) {
@@ -144,7 +157,7 @@ auto Lexer::processLabel(const std::string &line, const int lineNum,
     }
     std::string trimmedLine = line.substr(0, line.size() - 1);
     Label label{trimmedLine};
-    labels.insert({trimmedLine, label});
+    this->stringToLabels.insert({trimmedLine, label});
     return Token::createLabel(label);
 }
 
@@ -232,4 +245,10 @@ auto Lexer::trimComments(const std::string &line) -> std::string {
 template <typename MapType>
 auto Lexer::isValidKey(const std::string &key, const MapType &map) -> bool {
     return map.find(key) != map.end();
+}
+
+void Lexer::populateLabelsSet(std::unordered_set<Label> &labels) {
+    for (const auto &[_, label] : this->stringToLabels) {
+        labels.insert(label);
+    }
 }

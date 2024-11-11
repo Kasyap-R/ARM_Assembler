@@ -17,6 +17,16 @@ struct Label {
     std::string val;
 };
 
+// Specialize std::hash for Label
+namespace std {
+template <> struct hash<Label> {
+    size_t operator()(const Label &label) const {
+        // Combine hash values of members
+        return hash<std::string>()(label.val);
+    }
+};
+} // namespace std
+
 struct Immediate {
     int val;
 };
@@ -27,11 +37,14 @@ enum class TokenType {
     Directive,
     Label,
     Immediate,
+    Newline,
 };
 
 struct Token {
     TokenType type;
-    std::variant<Mnemonic, Register, Directive, Label, Immediate> token;
+    std::variant<std::monostate, Mnemonic, Register, Directive, Label,
+                 Immediate>
+        token;
 
     // Factory Methods to create Tokens
     static Token createMnemonic(Mnemonic mnemonic) {
@@ -52,6 +65,10 @@ struct Token {
 
     static Token createImmediate(Immediate immediate) {
         return Token{TokenType::Immediate, immediate};
+    }
+
+    static Token createNewline() {
+        return Token{TokenType::Newline, std::monostate()};
     }
 };
 
@@ -91,6 +108,8 @@ inline std::ostream &operator<<(std::ostream &os, const Token &token) {
     case TokenType::Immediate:
         os << "Immediate: " << std::get<Immediate>(token.token).val;
         break;
+    case TokenType::Newline:
+        os << "Newline";
     }
     os << ")\n";
     return os;

@@ -2,10 +2,9 @@
 
 #include "token.h"
 
-#include <string>
-#include <unordered_map>
+#include <unordered_set>
 
 class AssemblerState {
   public:
-    std::unordered_map<std::string, Label> labels;
+    std::unordered_set<Label> labels;
 };
