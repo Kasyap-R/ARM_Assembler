@@ -6,8 +6,25 @@
 #include <string>
 #include <vector>
 
+auto getLexerOutput(const std::string &lexerInput) -> std::vector<Token> {
+    AssemblerState state;
+    Lexer lexer;
+    return lexer.tokenize(lexerInput, state);
+}
+
+void validateLexerOutput(std::vector<Token> &lexerOutput,
+                         std::vector<Token> expected) {
+    ASSERT_EQ(expected.size(), lexerOutput.size())
+        << "Length of lexer token list and expected token list don't match\n";
+
+    for (size_t i = 0; i < expected.size(); i++) {
+        EXPECT_EQ(expected[i], lexerOutput[i])
+            << "Didn't match at index: " + std::to_string(i) << "\n";
+    }
+}
+
 TEST(LexerTest, ThreeArgMnemonic) {
-    std::string test_input = "add x1, x2, x3";
+    std::string testInput = "add x1, x2, x3";
     Mnemonic mnemonic = Mnemonic::ADD;
 
     Register reg1 = Register::X1;
@@ -20,21 +37,12 @@ TEST(LexerTest, ThreeArgMnemonic) {
     Token token4 = Token::createRegister(reg3);
 
     std::vector<Token> expected = {token1, token2, token3, token4};
-
-    AssemblerState state;
-    Lexer lexer;
-    std::vector<Token> lexerOutput = lexer.tokenize(test_input, state.labels);
-    ASSERT_EQ(expected.size(), lexerOutput.size())
-        << "Length of lexer token list and expected token list don't match\n";
-
-    for (size_t i = 0; i < expected.size(); i++) {
-        EXPECT_EQ(expected[i], lexerOutput[i])
-            << "Didn't match at index: " + std::to_string(i) << "\n";
-    }
+    std::vector<Token> lexerOutput = getLexerOutput(testInput);
+    validateLexerOutput(lexerOutput, expected);
 }
 
 TEST(LexerTest, MultipleInstructions) {
-    std::string test_input = "add x1, x2, x3\nmov x1, x2";
+    std::string testInput = "add x1, x2, x3\nmov x1, x2";
 
     Register reg1 = Register::X1;
     Register reg2 = Register::X2;
@@ -50,21 +58,13 @@ TEST(LexerTest, MultipleInstructions) {
     Token token8 = Token::createRegister(reg2);
     std::vector<Token> expected = {token1, token2, token3, token4,
                                    token5, token6, token7, token8};
-    AssemblerState state;
 
-    Lexer lexer;
-    std::vector<Token> lexerOutput = lexer.tokenize(test_input, state.labels);
-    ASSERT_EQ(expected.size(), lexerOutput.size())
-        << "Length of lexer token list and expected token list don't match\n";
-
-    for (size_t i = 0; i < expected.size(); i++) {
-        EXPECT_EQ(expected[i], lexerOutput[i])
-            << "Didn't match at index: " + std::to_string(i) << "\n";
-    }
+    std::vector<Token> lexerOutput = getLexerOutput(testInput);
+    validateLexerOutput(lexerOutput, expected);
 }
 
 TEST(LexerTest, SimpleLabels) {
-    std::string test_input = "function:\nj function";
+    std::string testInput = "function:\nj function";
 
     Label label{"function"};
 
@@ -74,21 +74,12 @@ TEST(LexerTest, SimpleLabels) {
 
     std::vector<Token> expected = {token1, token2, token3, token1};
 
-    AssemblerState state;
-
-    Lexer lexer;
-    std::vector<Token> lexerOutput = lexer.tokenize(test_input, state.labels);
-    ASSERT_EQ(expected.size(), lexerOutput.size())
-        << "Length of lexer token list and expected token list don't match\n";
-
-    for (size_t i = 0; i < expected.size(); i++) {
-        EXPECT_EQ(expected[i], lexerOutput[i])
-            << "Didn't match at index: " + std::to_string(i) << "\n";
-    }
+    std::vector<Token> lexerOutput = getLexerOutput(testInput);
+    validateLexerOutput(lexerOutput, expected);
 }
 
 TEST(LexerTest, SimpleImmediate) {
-    std::string test_input = "add x1, #34, #0xF";
+    std::string testInput = "add x1, #34, #0xF";
     Mnemonic mnemonic = Mnemonic::ADD;
 
     Register reg1 = Register::X1;
@@ -100,21 +91,12 @@ TEST(LexerTest, SimpleImmediate) {
 
     std::vector<Token> expected = {token1, token2, token3, token4};
 
-    AssemblerState state;
-
-    Lexer lexer;
-    std::vector<Token> lexerOutput = lexer.tokenize(test_input, state.labels);
-    ASSERT_EQ(expected.size(), lexerOutput.size())
-        << "Length of lexer token list and expected token list don't match\n";
-
-    for (size_t i = 0; i < expected.size(); i++) {
-        EXPECT_EQ(expected[i], lexerOutput[i])
-            << "Didn't match at index: " + std::to_string(i) << "\n";
-    }
+    std::vector<Token> lexerOutput = getLexerOutput(testInput);
+    validateLexerOutput(lexerOutput, expected);
 }
 
 TEST(LexerTest, BinaryImmediate) {
-    std::string test_input = "add x1, x2, #0b101";
+    std::string testInput = "add x1, x2, #0b101";
     Mnemonic mnemonic = Mnemonic::ADD;
 
     Register reg1 = Register::X1;
@@ -126,22 +108,13 @@ TEST(LexerTest, BinaryImmediate) {
     Token token4 = Token::createImmediate(Immediate{5}); // 0b101 in binary
 
     std::vector<Token> expected = {token1, token2, token3, token4};
-    AssemblerState state;
 
-    Lexer lexer;
-    std::vector<Token> lexerOutput = lexer.tokenize(test_input, state.labels);
-
-    ASSERT_EQ(expected.size(), lexerOutput.size())
-        << "Length of lexer token list and expected token list don't match\n";
-
-    for (size_t i = 0; i < expected.size(); i++) {
-        EXPECT_EQ(expected[i], lexerOutput[i])
-            << "Didn't match at index: " + std::to_string(i) << "\n";
-    }
+    std::vector<Token> lexerOutput = getLexerOutput(testInput);
+    validateLexerOutput(lexerOutput, expected);
 }
 
 TEST(LexerTest, SubtractionInstruction) {
-    std::string test_input = "sub x3, x4, x5";
+    std::string testInput = "sub x3, x4, x5";
     Mnemonic mnemonic = Mnemonic::SUB;
 
     Register reg1 = Register::X3;
@@ -155,22 +128,12 @@ TEST(LexerTest, SubtractionInstruction) {
 
     std::vector<Token> expected = {token1, token2, token3, token4};
 
-    AssemblerState state;
-
-    Lexer lexer;
-    std::vector<Token> lexerOutput = lexer.tokenize(test_input, state.labels);
-
-    ASSERT_EQ(expected.size(), lexerOutput.size())
-        << "Length of lexer token list and expected token list don't match\n";
-
-    for (size_t i = 0; i < expected.size(); i++) {
-        EXPECT_EQ(expected[i], lexerOutput[i])
-            << "Didn't match at index: " + std::to_string(i) << "\n";
-    }
+    std::vector<Token> lexerOutput = getLexerOutput(testInput);
+    validateLexerOutput(lexerOutput, expected);
 }
 
 TEST(LexerTest, MultipleLabels) {
-    std::string test_input = "start:\nadd x1, x2, x3\nend:";
+    std::string testInput = "start:\nadd x1, x2, x3\nend:";
     Label label1{"start"};
     Label label2{"end"};
 
@@ -190,28 +153,17 @@ TEST(LexerTest, MultipleLabels) {
     std::vector<Token> expected = {token1, newLine, token2,  token3,
                                    token4, token5,  newLine, token6};
 
-    AssemblerState state;
-    Lexer lexer;
-    std::vector<Token> lexerOutput = lexer.tokenize(test_input, state.labels);
-    ASSERT_EQ(expected.size(), lexerOutput.size())
-        << "Length of lexer token list and expected token list don't match\n";
-
-    for (size_t i = 0; i < expected.size(); i++) {
-        EXPECT_EQ(expected[i], lexerOutput[i])
-            << "Didn't match at index: " + std::to_string(i) << "\n";
-    }
+    std::vector<Token> lexerOutput = getLexerOutput(testInput);
+    validateLexerOutput(lexerOutput, expected);
 }
 
 TEST(LexerTest, InvalidImmediate) {
-    std::string test_input = "add x1, x2, #invalid";
-    AssemblerState state;
-    Lexer lexer;
-    EXPECT_THROW(
-        { lexer.tokenize(test_input, state.labels); }, std::runtime_error);
+    std::string testInput = "add x1, x2, #invalid";
+    EXPECT_THROW({ getLexerOutput(testInput); }, std::runtime_error);
 }
 
 TEST(LexerTest, InlineCommentIgnored) {
-    std::string test_input = "add x1, x2, x3 // This is a comment";
+    std::string testInput = "add x1, x2, x3 // This is a comment";
     Mnemonic mnemonic = Mnemonic::ADD;
 
     Register reg1 = Register::X1;
@@ -224,22 +176,13 @@ TEST(LexerTest, InlineCommentIgnored) {
     Token token4 = Token::createRegister(reg3);
 
     std::vector<Token> expected = {token1, token2, token3, token4};
-    AssemblerState state;
 
-    Lexer lexer;
-    std::vector<Token> lexerOutput = lexer.tokenize(test_input, state.labels);
-
-    ASSERT_EQ(expected.size(), lexerOutput.size())
-        << "Length of lexer token list and expected token list don't match\n";
-
-    for (size_t i = 0; i < expected.size(); i++) {
-        EXPECT_EQ(expected[i], lexerOutput[i])
-            << "Didn't match at index: " + std::to_string(i) << "\n";
-    }
+    std::vector<Token> lexerOutput = getLexerOutput(testInput);
+    validateLexerOutput(lexerOutput, expected);
 }
 
 TEST(LexerTest, CommentIgnored) {
-    std::string test_input = "//This is a comment\nadd x1, x2, x3";
+    std::string testInput = "//This is a comment\nadd x1, x2, x3";
     Mnemonic mnemonic = Mnemonic::ADD;
 
     Register reg1 = Register::X1;
@@ -253,22 +196,12 @@ TEST(LexerTest, CommentIgnored) {
 
     std::vector<Token> expected = {token1, token2, token3, token4};
 
-    AssemblerState state;
-
-    Lexer lexer;
-    std::vector<Token> lexerOutput = lexer.tokenize(test_input, state.labels);
-
-    ASSERT_EQ(expected.size(), lexerOutput.size())
-        << "Length of lexer token list and expected token list don't match\n";
-
-    for (size_t i = 0; i < expected.size(); i++) {
-        EXPECT_EQ(expected[i], lexerOutput[i])
-            << "Didn't match at index: " + std::to_string(i) << "\n";
-    }
+    std::vector<Token> lexerOutput = getLexerOutput(testInput);
+    validateLexerOutput(lexerOutput, expected);
 }
 
 TEST(LexerTest, WhitespaceTrimmed) {
-    std::string test_input = "\t add x1, x2, #0b101   ";
+    std::string testInput = "\t add x1, x2, #0b101   ";
     Mnemonic mnemonic = Mnemonic::ADD;
 
     Register reg1 = Register::X1;
@@ -280,16 +213,7 @@ TEST(LexerTest, WhitespaceTrimmed) {
     Token token4 = Token::createImmediate(Immediate{5}); // 0b101 in binary
 
     std::vector<Token> expected = {token1, token2, token3, token4};
-    AssemblerState state;
 
-    Lexer lexer;
-    std::vector<Token> lexerOutput = lexer.tokenize(test_input, state.labels);
-
-    ASSERT_EQ(expected.size(), lexerOutput.size())
-        << "Length of lexer token list and expected token list don't match\n";
-
-    for (size_t i = 0; i < expected.size(); i++) {
-        EXPECT_EQ(expected[i], lexerOutput[i])
-            << "Didn't match at index: " + std::to_string(i) << "\n";
-    }
+    std::vector<Token> lexerOutput = getLexerOutput(testInput);
+    validateLexerOutput(lexerOutput, expected);
 }

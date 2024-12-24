@@ -1,5 +1,6 @@
 #pragma once
 
+#include "assembler_state.h"
 #include "token.h"
 #include <string>
 #include <unordered_map>
@@ -45,6 +46,6 @@ class Lexer {
 
   public:
     Lexer();
-    auto tokenize(const std::string &assembly,
-                  std::unordered_set<Label> &labels) -> std::vector<Token>;
+    auto tokenize(const std::string &assembly, AssemblerState &assemblerState)
+        -> std::vector<Token>;
 };

@@ -13,7 +13,7 @@
 Lexer::Lexer() : stringToLabels({}) {};
 
 auto Lexer::tokenize(const std::string &assembly,
-                     std::unordered_set<Label> &labels) -> std::vector<Token> {
+                     AssemblerState &assemblerState) -> std::vector<Token> {
     std::istringstream stream(assembly);
     std::string line;
     std::vector<Token> tokens;
@@ -32,7 +32,7 @@ auto Lexer::tokenize(const std::string &assembly,
         }
     }
 
-    this->populateLabelsSet(labels);
+    this->populateLabelsSet(assemblerState.labels);
 
     return tokens;
 }
@@ -51,24 +51,24 @@ auto Lexer::processLine(std::string &line, const int lineNum)
     }
     if (line.back() == ':') {
         tokens.push_back(Lexer::processLabel(line, lineNum));
-    } else {
-        // TODO: Check if the line contains a label for macros
+        return tokens;
+    }
 
-        // process mnemonic
-        tokens.push_back(Lexer::processMnemonic(line, lineNum));
+    // TODO: Check if the line contains a label for macros
+    // process mnemonic
+    tokens.push_back(Lexer::processMnemonic(line, lineNum));
 
-        // Then process arguments and turn them into the appropriate tokens
-        size_t argStartIndex = line.find(' ') + 1;
-        if (argStartIndex >= line.size()) {
-            throw std::runtime_error("Expected arguments at line " +
-                                     std::to_string(lineNum));
-        }
-        std::vector<std::string> arguments =
-            Lexer::gatherArguments(line, argStartIndex, lineNum);
+    // Then process arguments and turn them into the appropriate tokens
+    size_t argStartIndex = line.find(' ') + 1;
+    if (argStartIndex >= line.size()) {
+        throw std::runtime_error("Expected arguments at line " +
+                                 std::to_string(lineNum));
+    }
+    std::vector<std::string> arguments =
+        Lexer::gatherArguments(line, argStartIndex, lineNum);
 
-        for (const auto &argument : arguments) {
-            tokens.push_back(this->processArgument(argument, lineNum));
-        }
+    for (const auto &argument : arguments) {
+        tokens.push_back(this->processArgument(argument, lineNum));
     }
 
     return tokens;
@@ -112,6 +112,9 @@ auto Lexer::gatherArguments(std::string &line, const size_t argStartIndex,
     std::string currentArgument;
     line.push_back(','); // Forces last argument to be pushed to arguments list
     for (size_t i = argStartIndex; i < line.size(); i++) {
+        if (line[i] == ' ') {
+            continue;
+        }
         if (line[i] == ',') {
             if (currentArgument.empty()) {
                 throw std::runtime_error(
@@ -121,8 +124,6 @@ auto Lexer::gatherArguments(std::string &line, const size_t argStartIndex,
             }
             arguments.push_back(currentArgument);
             currentArgument = "";
-        } else if (line[i] == ' ') {
-            continue;
         } else {
             currentArgument.push_back(line[i]);
         }
