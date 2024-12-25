@@ -9,5 +9,5 @@
 class AssemblerState {
   public:
     std::unordered_set<Label> labels;
-    std::unordered_map<Label, std::string> labelToAddress;
+    std::unordered_map<Label, int> labelToAddress;
 };

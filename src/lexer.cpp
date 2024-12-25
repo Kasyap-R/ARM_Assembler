@@ -1,6 +1,7 @@
 #include "lexer.h"
 #include "lexer_constants.h"
 #include "token.h"
+#include "util.h"
 
 #include <cctype>
 #include <sstream>
@@ -76,7 +77,7 @@ auto Lexer::processLine(std::string &line, const int lineNum)
 
 auto Lexer::processArgument(const std::string &argument, const int lineNum)
     -> Token {
-    if (Lexer::isValidKey(argument, this->stringToLabels)) {
+    if (util::isValidKey(argument, this->stringToLabels)) {
         return Token::createLabel(this->stringToLabels.at(argument));
     }
     if (argument[0] == '#') {
@@ -99,7 +100,7 @@ auto Lexer::processMnemonic(const std::string &line, const int lineNum)
     }
 
     std::string mnemonic = line.substr(0, firstWhitespaceIdx);
-    if (!Lexer::isValidKey(mnemonic, stringToMnemonic)) {
+    if (!util::isValidKey(mnemonic, stringToMnemonic)) {
         throw std::runtime_error("Expected mnemonic as first string at line: " +
                                  std::to_string(lineNum));
     }
@@ -188,7 +189,7 @@ auto Lexer::processImmediate(const std::string &immediate, const int lineNum)
 
 auto Lexer::processRegister(const std::string &argument, const int lineNum)
     -> Token {
-    if (!Lexer::isValidKey(argument, stringToRegister)) {
+    if (!util::isValidKey(argument, stringToRegister)) {
         throw std::runtime_error("Invalid register on line " +
                                  std::to_string(lineNum) + ": " + argument);
     }
@@ -204,7 +205,7 @@ auto Lexer::processDirective(const std::string &directive, int lineNum)
         1, firstWhitespaceIdx == std::string::npos ? std::string::npos
                                                    : firstWhitespaceIdx - 1);
     // Ensure the directive is valid
-    if (!Lexer::isValidKey(directiveLiteral, stringToDirective)) {
+    if (!util::isValidKey(directiveLiteral, stringToDirective)) {
         throw std::runtime_error("Invalid directive at line " +
                                  std::to_string(lineNum) + ": " + directive);
     }
@@ -241,11 +242,6 @@ auto Lexer::trimComments(const std::string &line) -> std::string {
         return "";
     }
     return line.substr(0, end);
-}
-
-template <typename MapType>
-auto Lexer::isValidKey(const std::string &key, const MapType &map) -> bool {
-    return map.find(key) != map.end();
 }
 
 void Lexer::populateLabelsSet(std::unordered_set<Label> &labels) {

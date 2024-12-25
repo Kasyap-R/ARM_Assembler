@@ -31,9 +31,6 @@ class Lexer {
 
     static auto trimComments(const std::string &line) -> std::string;
 
-    template <typename MapType>
-    static auto isValidKey(const std::string &key, const MapType &map) -> bool;
-
     auto processLabel(const std::string &line, const int lineNum) -> Token;
 
     auto processArgument(const std::string &argument, const int lineNum)

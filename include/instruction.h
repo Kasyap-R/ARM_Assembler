@@ -4,9 +4,11 @@
 #include <variant>
 #include <vector>
 
+using MachineArgument = std::variant<Register, Immediate, Label>;
+
 struct MachineInstruction {
     Mnemonic mnemonic;
-    std::vector<std::variant<Register, Immediate, Label>> arguments;
+    std::vector<MachineArgument> arguments;
 };
 
 struct DirectiveInstruction {
@@ -24,5 +26,5 @@ enum class InstructionType {
 
 struct Instruction {
     InstructionType type;
-    std::variant<MachineInstruction, DirectiveInstruction, Label> ir;
+    std::variant<MachineInstruction, DirectiveInstruction, Label> args;
 };
