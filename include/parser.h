@@ -24,10 +24,9 @@ class Parser {
   private:
     int pc; // program counter - used to track the number of bytes taken up by
             // assembly so far
-    auto parseInstruction(const std::vector<Token> &tokens,
+    auto parseInstruction(std::vector<Token> &tokens,
                           AssemblerState &assemblerState)
         -> std::optional<Instruction>;
-    auto parseMachineInstruction(const std::vector<Token> &tokens);
     auto parseDirectiveInstruction(const std::vector<Token> &tokens);
     static auto validateMnemonicArguments(Mnemonic mnemonic,
                                           const std::span<const Token> &args)
