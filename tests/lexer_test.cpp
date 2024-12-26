@@ -7,9 +7,10 @@
 #include <vector>
 
 auto getLexerOutput(const std::string &lexerInput) -> std::vector<Token> {
-    AssemblerState state;
     Lexer lexer;
-    return lexer.tokenize(lexerInput, state);
+    AssemblerState state;
+    lexer.tokenize(lexerInput, state);
+    return state.tokens;
 }
 
 void validateLexerOutput(std::vector<Token> &lexerOutput,

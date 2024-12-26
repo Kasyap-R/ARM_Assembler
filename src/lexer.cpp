@@ -8,16 +8,14 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 Lexer::Lexer() : stringToLabels({}) {};
 
-auto Lexer::tokenize(const std::string &assembly,
-                     AssemblerState &assemblerState) -> std::vector<Token> {
+void Lexer::tokenize(const std::string &assembly,
+                     AssemblerState &assemblerState) {
     std::istringstream stream(assembly);
     std::string line;
-    std::vector<Token> tokens;
     int lineNum = 0;
 
     while (std::getline(stream, line)) {
@@ -26,16 +24,13 @@ auto Lexer::tokenize(const std::string &assembly,
 
         std::vector<Token> tokensInLine = Lexer::processLine(line, lineNum);
 
-        tokens.insert(tokens.end(), tokensInLine.begin(), tokensInLine.end());
+        assemblerState.tokens.insert(assemblerState.tokens.end(),
+                                     tokensInLine.begin(), tokensInLine.end());
 
-        if (!tokens.empty() && stream.peek() != EOF) {
-            tokens.push_back(Token::createNewline());
+        if (!assemblerState.tokens.empty() && stream.peek() != EOF) {
+            assemblerState.tokens.push_back(Token::createNewline());
         }
     }
-
-    this->populateLabelsSet(assemblerState.labels);
-
-    return tokens;
 }
 
 auto Lexer::processLine(std::string &line, const int lineNum)
@@ -242,10 +237,4 @@ auto Lexer::trimComments(const std::string &line) -> std::string {
         return "";
     }
     return line.substr(0, end);
-}
-
-void Lexer::populateLabelsSet(std::unordered_set<Label> &labels) {
-    for (const auto &[_, label] : this->stringToLabels) {
-        labels.insert(label);
-    }
 }

@@ -1,13 +1,15 @@
 #pragma once
 
+#include "instruction.h"
 #include "token.h"
 
-#include <string>
 #include <unordered_map>
-#include <unordered_set>
 
+using LabelMap = std::unordered_map<Label, int>;
 class AssemblerState {
+
   public:
-    std::unordered_set<Label> labels;
-    std::unordered_map<Label, int> labelToAddress;
+    std::vector<Token> tokens;
+    std::vector<Instruction> instructions;
+    LabelMap labelToAddress;
 };

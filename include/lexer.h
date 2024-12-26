@@ -43,6 +43,5 @@ class Lexer {
 
   public:
     Lexer();
-    auto tokenize(const std::string &assembly, AssemblerState &assemblerState)
-        -> std::vector<Token>;
+    void tokenize(const std::string &assembly, AssemblerState &state);
 };

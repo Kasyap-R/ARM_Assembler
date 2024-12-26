@@ -8,31 +8,29 @@
 
 Parser::Parser() : pc{0} {};
 
-auto Parser::parse(std::vector<Token> &tokens, AssemblerState &assemblerState)
-    -> std::vector<Instruction> {
-    std::vector<Instruction> instructions;
+void Parser::parse(AssemblerState &assemblerState) {
     std::vector<Token> currLine;
 
     // Makes it easier to delimit by newline
-    tokens.push_back(Token::createNewline());
+    assemblerState.tokens.push_back(Token::createNewline());
 
-    for (auto &token : tokens) {
+    for (auto &token : assemblerState.tokens) {
         if (token.type == TokenType::Newline) {
             if (!currLine.empty()) {
-                std::optional<Instruction> instruction =
-                    this->parseInstruction(currLine, assemblerState);
+                assemblerState.instructions.push_back(this->parseInstruction(
+                    currLine, assemblerState.labelToAddress));
             }
             currLine.clear();
         } else {
             currLine.push_back(token);
         }
     }
-    return instructions;
+
+    assemblerState.tokens.pop_back();
 }
 
-auto Parser::parseInstruction(std::vector<Token> &tokens,
-                              AssemblerState &assemblerState)
-    -> std::optional<Instruction> {
+auto Parser::parseInstruction(std::vector<Token> &tokens, LabelMap &labelMap)
+    -> Instruction {
     // TODO: Add line nums to token for better errors
     const Token &firstToken = tokens[0];
 
@@ -41,8 +39,7 @@ auto Parser::parseInstruction(std::vector<Token> &tokens,
         if (tokens.size() > 1) {
             throw std::runtime_error("Unexpected tokens following label");
         }
-        assemblerState.labelToAddress.insert(
-            {std::get<Label>(firstToken.token), this->pc});
+        labelMap.insert({std::get<Label>(firstToken.token), this->pc});
         break;
     }
 
@@ -50,7 +47,6 @@ auto Parser::parseInstruction(std::vector<Token> &tokens,
         // This is a machine instruction
         const std::span<const Token> arguments(tokens.data() + 1,
                                                tokens.size() - 1);
-
         if (!Parser::validateMnemonicArguments(
                 std::get<Mnemonic>(tokens[0].token), arguments)) {
             throw std::runtime_error("Invalid arguments for a mnemonic");
@@ -79,7 +75,7 @@ auto Parser::validateMnemonicArguments(Mnemonic mnemonic,
         throw std::runtime_error("Unsupported mnemonic found while parsing");
     }
 
-    const std::vector<ArgFormat> supportedArgFormats =
+    const std::vector<ArgFormat> &supportedArgFormats =
         mnemonicsToFormats.at(mnemonic);
     const std::vector<ValidationRule> rules =
         Parser::gatherValidationRules(supportedArgFormats);
@@ -95,7 +91,7 @@ auto Parser::validateMnemonicArguments(Mnemonic mnemonic,
                 break;
             }
             // Found a match
-            if (i == args.size()) {
+            if (i == args.size() - 1) {
                 return true;
             }
         }
